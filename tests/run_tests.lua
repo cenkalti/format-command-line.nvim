@@ -3,33 +3,6 @@
 -- Simple test runner for format-command-line.nvim
 -- This script runs the test suite without requiring external test frameworks
 
--- Mock vim API for testing outside Neovim
-_G.vim = {
-    api = {
-        nvim_create_user_command = function() end,
-        nvim_win_get_cursor = function()
-            return { 1 }
-        end,
-        nvim_buf_get_lines = function()
-            return { '' }
-        end,
-        nvim_buf_set_lines = function() end,
-        nvim_win_set_cursor = function() end,
-    },
-    split = function(str, sep)
-        local result = {}
-        local pattern = string.format('([^%s]+)', sep)
-        for match in string.gmatch(str, pattern) do
-            table.insert(result, match)
-        end
-        return result
-    end,
-    fn = {
-        getpos = function()
-            return { 0, 1, 1, 0 }
-        end,
-    },
-}
 
 -- Test framework functions
 local current_describe = ''

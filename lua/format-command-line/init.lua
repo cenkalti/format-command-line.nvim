@@ -241,19 +241,22 @@ end
 
 -- Setup function to register commands
 function M.setup()
-    -- Register the FormatCommandLine command
-    vim.api.nvim_create_user_command('FormatCommandLine', function(opts)
-        if opts.range > 0 then
-            -- Visual mode
-            format_visual_selection()
-        else
-            -- Normal mode
-            format_current_line()
-        end
-    end, {
-        range = true,
-        desc = 'Format shell command line into multiple lines with proper indentation',
-    })
+    -- Only register commands if vim is available (running in Neovim)
+    if vim and vim.api then
+        -- Register the FormatCommandLine command
+        vim.api.nvim_create_user_command('FormatCommandLine', function(opts)
+            if opts.range > 0 then
+                -- Visual mode
+                format_visual_selection()
+            else
+                -- Normal mode
+                format_current_line()
+            end
+        end, {
+            range = true,
+            desc = 'Format shell command line into multiple lines with proper indentation',
+        })
+    end
 end
 
 -- Auto-setup when module is loaded
