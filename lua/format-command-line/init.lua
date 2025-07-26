@@ -259,7 +259,5 @@ function M.setup()
     end
 end
 
--- Auto-setup when module is loaded
-M.setup()
 
 return M
