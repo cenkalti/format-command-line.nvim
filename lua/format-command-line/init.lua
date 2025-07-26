@@ -77,6 +77,7 @@ local function tokenize_command(line)
             end
 
             -- Continue until whitespace or special character
+            -- Include = in flags to handle --flag=value
             while i <= len do
                 local current = line:sub(i, i)
                 if current:match('%s') or current:match('[|>&<]') then
@@ -96,7 +97,7 @@ local function tokenize_command(line)
             -- Continue until whitespace or special character
             while i <= len do
                 local current = line:sub(i, i)
-                if current:match('%s') or current:match('[|>&<]') or current == '-' then
+                if current:match('%s') or current:match('[|>&<]') then
                     break
                 end
                 i = i + 1
@@ -122,19 +123,25 @@ local function format_tokens(tokens)
     local lines = {}
     local current_line = ''
     local indent = '    ' -- 4 spaces
+    local in_pipeline = false -- Track if we're in a pipeline after |
 
-    for i, token in ipairs(tokens) do
+    local i = 1
+    while i <= #tokens do
+        local token = tokens[i]
         local value = token.value
 
         -- First token (command) goes on first line without indentation
         if i == 1 then
             current_line = value
+            in_pipeline = false
         -- Operators start new lines without continuation on previous line
         elseif token.type == 'operator' then
             table.insert(lines, current_line)
             current_line = indent .. value
-        -- Flags and their values start new lines with continuation
-        elseif token.type == 'flag' then
+            -- Set pipeline flag for pipe operators only
+            in_pipeline = (value == '|')
+        -- Flags start new lines with continuation, but not when in a pipeline
+        elseif token.type == 'flag' and not in_pipeline then
             -- Add continuation to previous line if it exists
             if current_line ~= '' then
                 table.insert(lines, current_line .. ' \\')
@@ -142,19 +149,26 @@ local function format_tokens(tokens)
             current_line = indent .. value
 
             -- Check if next token is an argument (flag value)
-            if i < #tokens and tokens[i + 1].type == 'argument' then
+            -- Only do this if the flag doesn't already contain = (like --timeout=30)
+            if i < #tokens and tokens[i + 1].type == 'argument' and not value:find('=') then
                 current_line = current_line .. ' ' .. tokens[i + 1].value
                 -- Skip the next token since we processed it
                 i = i + 1
             end
-        -- Other arguments continue on same line or start new line if after operator
+        -- Other arguments (including flags in pipelines) continue on same line
         else
             if current_line == '' then
                 current_line = indent .. value
             else
                 current_line = current_line .. ' ' .. value
             end
+            -- Reset pipeline state if we hit && or ||
+            if token.type == 'operator' and (value == '&&' or value == '||') then
+                in_pipeline = false
+            end
         end
+
+        i = i + 1
     end
 
     -- Add the last line
